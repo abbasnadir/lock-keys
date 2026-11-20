@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Lock Keys
+Name=Caps Lock
 Comment=An application to display when lock keys are turned on or off.
 Type=Application
 Icon=com.github.pro0grammer1.lock-keys.capslock
-Exec=lock-keys %F
+Exec=capslock %F
 Terminal=false
 StartupNotify=true
 Categories=COSMIC

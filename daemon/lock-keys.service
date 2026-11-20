@@ -4,7 +4,7 @@ After=multi-user.target
 
 [Service]
 Type=simple
-ExecStart=/home/pro0grammer/Codes/lock-keys/target/debug/daemon
+ExecStart=/usr/bin/lock-keys-daemon
 
 Restart=always
 RestartSec=0.5
@@ -16,9 +16,6 @@ Group=root
 # Dev-friendly env
 Environment=RUST_LOG=debug
 Environment=RUST_BACKTRACE=1
-
-# Optional but useful
-WorkingDirectory=/home/pro0grammer/Codes/lock-keys/
 
 [Install]
 WantedBy=multi-user.target

@@ -1,9 +1,9 @@
 [Desktop Entry]
-Name=Lock Keys
+Name=Num Lock
 Comment=An application to display when lock keys are turned on or off.
 Type=Application
 Icon=com.github.pro0grammer1.lock-keys.numslock
-Exec=lock-keys %F
+Exec=numslock %F
 Terminal=false
 StartupNotify=true
 Categories=COSMIC
