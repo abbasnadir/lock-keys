@@ -4,4 +4,6 @@ view = View
 welcome = Welcome to COSMIC! ✨
 page-id = Page { $num }
 git-description = Git commit {$hash} on {$date}
-example-row = Example Row
+lock-on = Caps Lock is on
+lock-off = Caps Lock is off
+daemon-not-running = lock-keys-daemon is not running

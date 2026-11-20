@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "daemon",
+    "protocol",
     "capslock",
     "numslock"
 ]

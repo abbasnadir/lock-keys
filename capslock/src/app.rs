@@ -8,6 +8,10 @@ use cosmic::iced_winit::commands::popup::{destroy_popup, get_popup};
 use cosmic::prelude::*;
 use cosmic::widget;
 use futures_util::SinkExt;
+use lock_keys_protocol::LockState;
+
+const ICON_ON: &[u8] = include_bytes!("../resources/capslockon.svg");
+const ICON_OFF: &[u8] = include_bytes!("../resources/capslockoff.svg");
 
 /// The application model stores app-specific state used to describe its interface and
 /// drive its logic.
@@ -19,8 +23,8 @@ pub struct AppModel {
     popup: Option<Id>,
     /// Configuration data that persists between application runs.
     config: Config,
-    /// Example row toggler.
-    example_row: bool,
+    /// Latest state from the daemon, `None` while it can't be reached.
+    lock_state: Option<LockState>,
 }
 
 /// Messages emitted by the application and its widgets.
@@ -28,9 +32,25 @@ pub struct AppModel {
 pub enum Message {
     TogglePopup,
     PopupClosed(Id),
-    SubscriptionChannel,
+    LockState(Option<LockState>),
     UpdateConfig(Config),
-    ToggleExampleRow(bool),
+}
+
+fn is_on(state: Option<LockState>) -> bool {
+    state.is_some_and(|state| state.caps_lock)
+}
+
+/// The panel icon. Without the daemon the dimmed "off" icon is shown.
+fn icon_bytes(state: Option<LockState>) -> &'static [u8] {
+    if is_on(state) { ICON_ON } else { ICON_OFF }
+}
+
+fn status_text(state: Option<LockState>) -> String {
+    match state {
+        None => fl!("daemon-not-running"),
+        Some(_) if is_on(state) => fl!("lock-on"),
+        Some(_) => fl!("lock-off"),
+    }
 }
 
 /// Create a COSMIC application from the app model
@@ -91,8 +111,7 @@ impl cosmic::Application for AppModel {
     /// This view should emit messages to toggle the applet's popup window, which will
     /// be drawn using the `view_window` method.
     fn view(&self) -> Element<'_, Self::Message> {
-        let icon =
-            widget::icon::from_path("/home/pro0grammer/Codes/lock-keys/capslock/resources/capslockon.svg".into());
+        let icon = widget::icon::from_svg_bytes(icon_bytes(self.lock_state));
 
         self.core
             .applet
@@ -108,10 +127,7 @@ impl cosmic::Application for AppModel {
         let content_list = widget::list_column()
             .padding(5)
             .spacing(0)
-            .add(widget::settings::item(
-                fl!("example-row"),
-                widget::toggler(self.example_row).on_toggle(Message::ToggleExampleRow),
-            ));
+            .add(widget::text::body(status_text(self.lock_state)));
 
         self.core.applet.popup_container(content_list).into()
     }
@@ -123,16 +139,21 @@ impl cosmic::Application for AppModel {
     /// activated by selectively appending to the subscription batch, and will
     /// continue to execute for the duration that they remain in the batch.
     fn subscription(&self) -> Subscription<Self::Message> {
-        struct MySubscription;
+        struct DaemonSubscription;
 
         Subscription::batch(vec![
-            // Create a subscription which emits updates through a channel.
+            // Follow the lock state sent by lock-keys-daemon.
             Subscription::run_with_id(
-                std::any::TypeId::of::<MySubscription>(),
-                cosmic::iced::stream::channel(4, move |mut channel| async move {
-                    _ = channel.send(Message::SubscriptionChannel).await;
-
-                    futures_util::future::pending().await
+                std::any::TypeId::of::<DaemonSubscription>(),
+                cosmic::iced::stream::channel(4, move |channel| async move {
+                    let path = lock_keys_protocol::socket_path();
+                    lock_keys_protocol::client::watch(&path, |state| {
+                        let mut channel = channel.clone();
+                        async move {
+                            _ = channel.send(Message::LockState(state)).await;
+                        }
+                    })
+                    .await;
                 }),
             ),
             // Watch for application configuration changes.
@@ -155,13 +176,10 @@ impl cosmic::Application for AppModel {
     /// tasks are finished.
     fn update(&mut self, message: Self::Message) -> Task<cosmic::Action<Self::Message>> {
         match message {
-            Message::SubscriptionChannel => {
-                // For example purposes only.
-            }
+            Message::LockState(state) => self.lock_state = state,
             Message::UpdateConfig(config) => {
                 self.config = config;
             }
-            Message::ToggleExampleRow(toggled) => self.example_row = toggled,
             Message::TogglePopup => {
                 return if let Some(p) = self.popup.take() {
                     destroy_popup(p)
@@ -194,5 +212,44 @@ impl cosmic::Application for AppModel {
 
     fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
         Some(cosmic::applet::style())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use cosmic::Application;
+
+    const ON: LockState = LockState {
+        caps_lock: true,
+        num_lock: false,
+    };
+    // Only Num Lock is on, which this applet ignores.
+    const OFF: LockState = LockState {
+        caps_lock: false,
+        num_lock: true,
+    };
+
+    #[test]
+    fn icon_follows_caps_lock() {
+        assert_eq!(icon_bytes(Some(ON)), ICON_ON);
+        assert_eq!(icon_bytes(Some(OFF)), ICON_OFF);
+        assert_eq!(icon_bytes(None), ICON_OFF);
+    }
+
+    #[test]
+    fn status_text_covers_missing_daemon() {
+        assert_eq!(status_text(Some(ON)), "Caps Lock is on");
+        assert_eq!(status_text(Some(OFF)), "Caps Lock is off");
+        assert_eq!(status_text(None), "lock-keys-daemon is not running");
+    }
+
+    #[test]
+    fn update_stores_daemon_state() {
+        let mut app = AppModel::default();
+        let _ = app.update(Message::LockState(Some(ON)));
+        assert_eq!(app.lock_state, Some(ON));
+        let _ = app.update(Message::LockState(None));
+        assert_eq!(app.lock_state, None);
     }
 }

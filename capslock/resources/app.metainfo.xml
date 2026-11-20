@@ -11,9 +11,9 @@
   <url type="vcs-browser">https://github.com/pro0grammer1/lock-keys/capslock</url>
   <launchable type="desktop-id">com.github.pro0grammer1.lock-keys.capslock.desktop</launchable>
   <provides>
-    <id>com.github.pro0grammer1.lock-keys</id>
+    <id>com.github.pro0grammer1.lock-keys.capslock</id>
     <binaries>
-      <binary>lock-keys</binary>
+      <binary>capslock</binary>
     </binaries>
   </provides>
   <requires>
