@@ -8,3 +8,8 @@ evdev = "0.13.2"
 log = "0.4"
 env_logger = "0.11"
 signal-hook = "0.3"
+lock-keys-protocol = { path = "../protocol" }
+
+[dev-dependencies]
+lock-keys-protocol = { path = "../protocol", features = ["client"] }
+tokio = { version = "1.48.0", features = ["macros", "rt", "sync", "time"] }

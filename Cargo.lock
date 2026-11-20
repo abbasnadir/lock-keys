@@ -823,6 +823,7 @@ dependencies = [
  "i18n-embed",
  "i18n-embed-fl",
  "libcosmic",
+ "lock-keys-protocol",
  "rust-embed",
  "tokio",
 ]
@@ -3026,8 +3027,17 @@ version = "0.1.0"
 dependencies = [
  "env_logger",
  "evdev",
+ "lock-keys-protocol",
  "log",
  "signal-hook",
+ "tokio",
+]
+
+[[package]]
+name = "lock-keys-protocol"
+version = "0.1.0"
+dependencies = [
+ "tokio",
 ]
 
 [[package]]
@@ -3386,6 +3396,7 @@ dependencies = [
  "i18n-embed",
  "i18n-embed-fl",
  "libcosmic",
+ "lock-keys-protocol",
  "rust-embed",
  "tokio",
 ]
